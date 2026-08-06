@@ -1,9 +1,12 @@
 using System.Windows.Forms;
+using System.IO;
+using ChargeGuard.Analytics;
 using ChargeGuard.Battery;
 using ChargeGuard.Charging;
 using ChargeGuard.Logging;
 using ChargeGuard.Notifications;
 using ChargeGuard.Settings;
+using ChargeGuard.UI;
 using Timer = System.Windows.Forms.Timer;
 using WinFormsApplication = System.Windows.Forms.Application;
 using MessageBox = System.Windows.Forms.MessageBox;
@@ -26,6 +29,9 @@ public class ChargeGuardApplicationContext : ApplicationContext
     private readonly IAlertNotifier _alertNotifier;
     private readonly IAlertNotifier _tooltipNotifier;
     private readonly Timer _reminderCheckTimer;
+    private readonly BatteryDatabase _batteryDatabase;
+    private readonly BatteryAnalyticsService _analyticsService;
+    private readonly BatteryAnalyticsQueries _analyticsQueries;
     private DateTime? _lastAlertTime;
 
     private const int ReminderCheckIntervalMs = 1000; // Check every second for reminder due times
@@ -46,6 +52,17 @@ public class ChargeGuardApplicationContext : ApplicationContext
         _batteryMonitor = batteryMonitor ?? throw new ArgumentNullException(nameof(batteryMonitor));
         _alertEvaluator = alertEvaluator ?? throw new ArgumentNullException(nameof(alertEvaluator));
         _soundPlayer = soundPlayer ?? throw new ArgumentNullException(nameof(soundPlayer));
+
+        // Initialize analytics
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ChargeGuard",
+            "battery_analytics.db"
+        );
+        _batteryDatabase = new BatteryDatabase(dbPath);
+        _batteryDatabase.Initialize();
+        _analyticsService = new BatteryAnalyticsService(_batteryDatabase, _logger, _settings);
+        _analyticsQueries = new BatteryAnalyticsQueries(_batteryDatabase);
 
         _notifyIcon = CreateNotifyIcon();
         _alertNotifier = new DialogAlertNotifier(_soundPlayer, _logger);
@@ -70,6 +87,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
         var contextMenu = new ContextMenuStrip();
         contextMenu.Items.Add("Open ChargeGuard", null, OnOpenSettings);
+        contextMenu.Items.Add("📊 Battery Analytics", null, OnOpenAnalytics);
         contextMenu.Items.Add("-");
         contextMenu.Items.Add("Charge to 100% this session", null, OnChargeTo100);
         contextMenu.Items.Add("Snooze reminders for 10 minutes", null, OnSnooze);
@@ -94,6 +112,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
     public void Start()
     {
         _batteryMonitor.Start();
+        _analyticsService.Start();
         _reminderCheckTimer.Start();
         
         // Simple startup check: if battery is at or above target and charging, show alert immediately
@@ -133,21 +152,24 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
     private void OnBatteryStateChanged(object? sender, BatteryStateChangedEventArgs e)
     {
+        // Record battery reading for analytics
+        _analyticsService.RecordReading(e.CurrentState);
+
         // Simple check: if battery is at or above target and charging, show alert
-        if (e.CurrentState.IsAcPowerConnected && 
-            e.CurrentState.IsCharging && 
+        if (e.CurrentState.IsAcPowerConnected &&
+            e.CurrentState.IsCharging &&
             e.CurrentState.BatteryPercentage.HasValue &&
             e.CurrentState.BatteryPercentage.Value >= _settings.NormalTargetPercentage)
         {
             _logger.LogInfo($"Battery at {e.CurrentState.BatteryPercentage}% (target: {_settings.NormalTargetPercentage}%), showing alert");
-            
+
             var alertDecision = new ChargingAlertDecision(
                 ChargingAlertType.Target,
                 $"Charging target reached\nBattery is at {e.CurrentState.BatteryPercentage}%. You can disconnect the charger.",
                 e.CurrentState.BatteryPercentage.Value,
                 _settings.NormalTargetPercentage,
                 playSound: _settings.SoundEnabled);
-            
+
             _lastAlertTime = DateTime.UtcNow;
             _alertNotifier.ShowAlert(alertDecision);
         }
@@ -233,6 +255,21 @@ public class ChargeGuardApplicationContext : ApplicationContext
         {
             _logger.LogError("Failed to open settings window", ex);
             MessageBox.Show("Failed to open settings window.", "ChargeGuard", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void OnOpenAnalytics(object? sender, EventArgs e)
+    {
+        try
+        {
+            var analyticsWindow = new AnalyticsWindow(_analyticsQueries, _logger);
+            analyticsWindow.ShowDialog();
+            _logger.LogInfo("Analytics window closed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to open analytics window", ex);
+            MessageBox.Show("Failed to open analytics window.", "ChargeGuard", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
