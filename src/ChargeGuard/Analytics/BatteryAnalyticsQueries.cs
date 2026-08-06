@@ -119,9 +119,17 @@ public class BatteryAnalyticsQueries
         using var reader = command.ExecuteReader();
         if (reader.Read())
         {
+            var totalSessions = reader.GetInt32(0);
+            
+            // If no sessions, return empty statistics
+            if (totalSessions == 0)
+            {
+                return new BatteryStatistics();
+            }
+
             return new BatteryStatistics
             {
-                TotalChargingSessions = reader.GetInt32(0),
+                TotalChargingSessions = totalSessions,
                 AverageChargeDurationMinutes = reader.IsDBNull(1) ? 0 : reader.GetDouble(1),
                 OverchargeCount = reader.GetInt32(2),
                 AverageOverchargeDurationMinutes = reader.IsDBNull(3) ? 0 : reader.GetDouble(3),
