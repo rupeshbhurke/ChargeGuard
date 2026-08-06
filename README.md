@@ -27,10 +27,10 @@ A lightweight Windows 11 desktop utility that monitors your laptop's battery and
 ## Technology Stack
 
 - **Language**: C# (.NET 9.0)
-- **Framework**: Windows Forms
-- **Native APIs**: Direct Win32 power-event APIs through P/Invoke
-- **Deployment**: Framework-dependent Windows deployment
-- **Target**: Windows 11
+- **Framework**: Windows Forms (Windows), AvaloniaUI (Linux - in development)
+- **Native APIs**: Direct Win32 power-event APIs through P/Invoke (Windows), UPower D-Bus (Linux - planned)
+- **Deployment**: Framework-dependent deployment
+- **Target**: Windows 11 (current), Ubuntu Linux (in development)
 
 ## Prerequisites
 
@@ -167,7 +167,33 @@ Configure the following in the settings window:
 
 ## Architecture
 
+ChargeGuard uses a hybrid architecture with shared core logic and platform-specific implementations:
+
+### Project Structure
+
+- **ChargeGuard.Core**: Shared business logic (battery monitoring interfaces, settings management, alert evaluation)
+- **ChargeGuard**: Windows-specific implementation using Windows Forms and Win32 APIs
+- **ChargeGuard.Linux**: Linux-specific implementation using AvaloniaUI and UPower (in development)
+
+### Cross-Platform Design
+
+The application is designed to support multiple platforms while maintaining a single source of truth for core functionality:
+
+- **Shared Core**: Battery monitoring interfaces, settings management, alert evaluation logic
+- **Platform-Specific UI**: Windows Forms for Windows, AvaloniaUI for Linux
+- **Platform-Specific Services**: Win32 APIs for Windows, UPower D-Bus for Linux
+
 For detailed architecture information, see [docs/architecture.md](docs/architecture.md).
+
+### Recent UI Improvements
+
+The settings window has been modernized with:
+- Professional blue header with app branding
+- Modern flat design with improved color scheme
+- Better typography and spacing
+- Right-aligned numeric inputs for consistency
+- Enhanced button styling with icons
+- Improved layout with two-column design
 
 ## License
 

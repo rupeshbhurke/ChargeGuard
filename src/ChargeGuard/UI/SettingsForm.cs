@@ -80,7 +80,7 @@ public partial class SettingsForm : Form
         // Create status section
         var statusGroup = CreateStatusSection();
         statusGroup.Location = new Point(20, 100);
-        statusGroup.Size = new Size(290, 180);
+        statusGroup.Size = new Size(290, 220);
 
         // Create settings section
         var settingsGroup = CreateSettingsSection();
@@ -205,12 +205,12 @@ public partial class SettingsForm : Form
 
         // Layout - more spaced out
         _currentPercentageLabel.Location = new Point(15, 25);
-        _currentPowerSourceLabel.Location = new Point(15, 55);
-        _chargingStatusLabel.Location = new Point(15, 85);
-        _activeTargetLabel.Location = new Point(15, 115);
-        _temporaryModeLabel.Location = new Point(15, 145);
-        _lastAlertLabel.Location = new Point(15, 175);
-        _chargerConnectedLabel.Location = new Point(15, 205);
+        _currentPowerSourceLabel.Location = new Point(15, 50);
+        _chargingStatusLabel.Location = new Point(15, 75);
+        _activeTargetLabel.Location = new Point(15, 100);
+        _temporaryModeLabel.Location = new Point(15, 125);
+        _lastAlertLabel.Location = new Point(15, 150);
+        _chargerConnectedLabel.Location = new Point(15, 175);
 
         return group;
     }
@@ -238,9 +238,10 @@ public partial class SettingsForm : Form
             Minimum = 1,
             Maximum = 100,
             Value = _settings.NormalTargetPercentage,
-            Location = new Point(160, 23),
-            Size = new Size(70, 25),
-            Font = new Font("Segoe UI", 9)
+            Location = new Point(200, 23),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
         };
 
         // Advance warning
@@ -255,7 +256,7 @@ public partial class SettingsForm : Form
 
         var advanceWarningLabel = new Label { 
             Text = "Advance Warning (%):", 
-            Location = new Point(35, 85), 
+            Location = new Point(15, 85), 
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
         };
@@ -264,9 +265,10 @@ public partial class SettingsForm : Form
             Minimum = 1,
             Maximum = 100,
             Value = _settings.AdvanceWarningPercentage,
-            Location = new Point(185, 83),
-            Size = new Size(70, 25),
-            Font = new Font("Segoe UI", 9)
+            Location = new Point(200, 83),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
         };
 
         // Repeated reminders
@@ -281,7 +283,7 @@ public partial class SettingsForm : Form
 
         var firstReminderLabel = new Label { 
             Text = "First Reminder (min):", 
-            Location = new Point(35, 145), 
+            Location = new Point(15, 145), 
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
         };
@@ -290,14 +292,15 @@ public partial class SettingsForm : Form
             Minimum = 1,
             Maximum = 60,
             Value = (decimal)_settings.FirstReminderDelay.TotalMinutes,
-            Location = new Point(185, 143),
-            Size = new Size(70, 25),
-            Font = new Font("Segoe UI", 9)
+            Location = new Point(200, 143),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
         };
 
         var reminderIntervalLabel = new Label { 
             Text = "Reminder Interval (min):", 
-            Location = new Point(35, 175), 
+            Location = new Point(15, 175), 
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
         };
@@ -306,9 +309,10 @@ public partial class SettingsForm : Form
             Minimum = 1,
             Maximum = 60,
             Value = (decimal)_settings.RepeatedReminderInterval.TotalMinutes,
-            Location = new Point(215, 173),
-            Size = new Size(70, 25),
-            Font = new Font("Segoe UI", 9)
+            Location = new Point(200, 173),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
         };
 
         // Escalation
@@ -323,9 +327,10 @@ public partial class SettingsForm : Form
             Minimum = 1,
             Maximum = 100,
             Value = _settings.EscalationPercentage,
-            Location = new Point(160, 203),
-            Size = new Size(70, 25),
-            Font = new Font("Segoe UI", 9)
+            Location = new Point(200, 203),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
         };
 
         // Sound
