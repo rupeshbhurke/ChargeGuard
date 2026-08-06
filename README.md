@@ -1,6 +1,19 @@
 # ChargeGuard
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2011-blue.svg)](https://www.microsoft.com/windows)
+
 A lightweight Windows 11 desktop utility that monitors your laptop's battery and alerts you when it reaches a configured charging percentage.
+
+## 🚀 Quick Start
+
+1. **Download the latest release** from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
+2. **Install .NET 9.0 Desktop Runtime** if not already installed
+3. **Run ChargeGuard.exe** - it will appear in your notification area
+4. **Connect your charger** and let ChargeGuard monitor your battery
+
+## 📖 Features
 
 ## Features
 
@@ -58,16 +71,21 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### Using the Installer (Recommended)
 
-1. Download and run the Inno Setup installer (if available)
-2. Follow the installation wizard
-3. Optionally enable "Start with Windows" during installation
+1. Download the latest installer from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
+2. Run the `ChargeGuard-Setup.exe` installer
+3. Follow the installation wizard
+4. Optionally enable "Start with Windows" during installation
 
 ### Manual Installation
 
-1. Download the published application files
-2. Extract to a folder of your choice (e.g., `C:\Program Files\ChargeGuard`)
+1. Download the latest release from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
+2. Extract the files to a folder of your choice (e.g., `C:\Program Files\ChargeGuard`)
 3. Create a desktop shortcut if desired
 4. Run `ChargeGuard.exe` to start the application
+
+### Building from Source
+
+See the [Build Instructions](#build-instructions) section below.
 
 ## Settings File Location
 
@@ -153,12 +171,33 @@ For detailed architecture information, see [docs/architecture.md](docs/architect
 
 ## License
 
-[Specify your license here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
-[Specify contribution guidelines here]
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## Support
 
-For issues and questions, please use the project's issue tracker.
+For issues, questions, or suggestions, please:
+- Open an issue on [GitHub Issues](https://github.com/rupeshbhurke/ChargeGuard/issues)
+- Check existing issues for solutions
+- Review the [architecture documentation](docs/architecture.md) for technical details
+
+## Acknowledgments
+
+- Built with [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0)
+- Uses [Windows Forms](https://docs.microsoft.com/en-us/dotnet/desktop/winforms/)
+- Powered by Windows native power management APIs
+
+## Repository
+
+- **GitHub**: https://github.com/rupeshbhurke/ChargeGuard
+- **Issues**: https://github.com/rupeshbhurke/ChargeGuard/issues
+- **Releases**: https://github.com/rupeshbhurke/ChargeGuard/releases

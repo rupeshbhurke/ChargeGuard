@@ -4,10 +4,10 @@
 [Setup]
 AppName=ChargeGuard
 AppVersion=1.0.0
-AppPublisher=ChargeGuard
-AppPublisherURL=https://github.com/yourusername/ChargeGuard
-AppSupportURL=https://github.com/yourusername/ChargeGuard/issues
-AppUpdatesURL=https://github.com/yourusername/ChargeGuard/releases
+AppPublisher=Rupesh Bhurke
+AppPublisherURL=https://github.com/rupeshbhurke/ChargeGuard
+AppSupportURL=https://github.com/rupeshbhurke/ChargeGuard/issues
+AppUpdatesURL=https://github.com/rupeshbhurke/ChargeGuard/releases
 DefaultDirName={localappdata}\ChargeGuard
 DefaultGroupName=ChargeGuard
 AllowNoIcons=yes
@@ -17,6 +17,8 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 ; Install for current user only (no elevation required)
+AppCopyright=Copyright (C) 2024 Rupesh Bhurke
+UninstallDisplayIcon={app}\ChargeGuard.exe
 
 ; .NET Runtime check
 ; Note: This checks if .NET Desktop Runtime is installed
@@ -53,35 +55,29 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 [Code]
 function InitializeSetup(): Boolean;
 var
-  ErrorCode: Integer;
-  NetRuntimeInstalled: Boolean;
   ResultCode: Integer;
+  NetRuntimeInstalled: Boolean;
 begin
   // Check if .NET 9.0 Desktop Runtime is installed
-  // This is a basic check - in production, you might want to use a more robust method
   NetRuntimeInstalled := False;
 
-  // Try to detect .NET 9.0 Desktop Runtime
-  // This is a simplified check - adjust as needed for your specific requirements
+  // Check for .NET 9.0 Desktop Runtime in the registry
+  // This checks for the x64 version
   if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', ResultCode) then
   begin
-    // This checks for .NET Framework, not .NET Core/.NET 5+
-    // For .NET 9.0, you would need to check for the specific runtime
-    // For now, we'll just warn the user
+    // This is a basic check for .NET Framework
+    // For .NET 5+, we would need to check different registry keys
+    // For now, we'll proceed with a warning
   end;
 
-  // Show a message if .NET runtime might not be installed
-  // In production, implement proper .NET 9.0 detection
-  if not NetRuntimeInstalled then
+  // Show information about .NET 9.0 requirement
+  if MsgBox('ChargeGuard requires .NET 9.0 Desktop Runtime to run.' + #13#10 +
+            'If you are not sure it is installed, you can download it from:' + #13#10 +
+            'https://dotnet.microsoft.com/download/dotnet/9.0' + #13#10 + #13#10 +
+            'Do you want to continue with the installation?', mbConfirmation, MB_YESNO) = IDNO then
   begin
-    if MsgBox('ChargeGuard requires .NET 9.0 Desktop Runtime to run.' + #13#10 +
-              'If you are not sure it is installed, you can download it from:' + #13#10 +
-              'https://dotnet.microsoft.com/download/dotnet/9.0' + #13#10 + #13#10 +
-              'Do you want to continue with the installation?', mbConfirmation, MB_YESNO) = IDNO then
-    begin
-      Result := False;
-      Exit;
-    end;
+    Result := False;
+    Exit;
   end;
 
   Result := True;

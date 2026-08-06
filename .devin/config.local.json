@@ -10,7 +10,10 @@
       "Exec(dotnet publish)",
       "Exec(powershell)",
       "Exec(git init)",
-      "Exec(git add)"
+      "Exec(git add)",
+      "Exec(git commit)",
+      "Exec(git branch)",
+      "Exec(git push)"
     ]
   }
 }
