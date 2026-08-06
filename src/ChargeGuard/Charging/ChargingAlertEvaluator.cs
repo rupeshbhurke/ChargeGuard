@@ -70,6 +70,47 @@ public class ChargingAlertEvaluator
         if (snapshot.IsAcPowerConnected && _currentSession == null)
         {
             StartSession(percentage);
+            
+            // If already at or above target when starting session, trigger alert immediately
+            if (_currentSession != null && percentage >= _currentSession.ActiveTargetPercentage)
+            {
+                _currentSession.TargetAlertSent = true;
+                ScheduleFirstReminder(_currentSession);
+                
+                // Check if already at escalation level
+                if (percentage >= _settings.EscalationPercentage)
+                {
+                    _currentSession.EscalationAlertSent = true;
+                    _currentSession.NextReminderDue = null;
+                    
+                    return new ChargingAlertDecision(
+                        ChargingAlertType.Escalation,
+                        $"Battery has reached {percentage}% and remains connected. Your configured target was {_currentSession.ActiveTargetPercentage}%.",
+                        percentage,
+                        _currentSession.ActiveTargetPercentage,
+                        playSound: _settings.SoundEnabled);
+                }
+                
+                return new ChargingAlertDecision(
+                    ChargingAlertType.Target,
+                    $"Charging target reached\nBattery is at {percentage}%. You can disconnect the charger.",
+                    percentage,
+                    _currentSession.ActiveTargetPercentage,
+                    playSound: _settings.SoundEnabled);
+            }
+            
+            // Check if already at advance warning level
+            if (_currentSession != null && _settings.AdvanceWarningEnabled && percentage >= _settings.AdvanceWarningPercentage)
+            {
+                _currentSession.AdvanceWarningSent = true;
+                
+                return new ChargingAlertDecision(
+                    ChargingAlertType.AdvanceWarning,
+                    $"Battery is at {percentage}% and approaching the {_currentSession.ActiveTargetPercentage}% charging target.",
+                    percentage,
+                    _currentSession.ActiveTargetPercentage,
+                    playSound: false);
+            }
         }
 
         // End session if charger disconnected
@@ -108,12 +149,6 @@ public class ChargingAlertEvaluator
         var target = _settings.NormalTargetPercentage;
         _currentSession = new ChargingSession(target, _clock);
         _currentSession.LastBatteryPercentage = currentPercentage;
-
-        // If already at or above target, mark target as sent to avoid alert on startup
-        if (currentPercentage >= target)
-        {
-            _currentSession.TargetAlertSent = true;
-        }
     }
 
     private void EndSession()

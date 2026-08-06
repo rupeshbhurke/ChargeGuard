@@ -7,6 +7,7 @@ using ChargeGuard.Settings;
 using Timer = System.Windows.Forms.Timer;
 using WinFormsApplication = System.Windows.Forms.Application;
 using MessageBox = System.Windows.Forms.MessageBox;
+using ChargingAlertDecision = ChargeGuard.Charging.ChargingAlertDecision;
 
 namespace ChargeGuard.Application;
 
@@ -95,6 +96,23 @@ public class ChargeGuardApplicationContext : ApplicationContext
     {
         _batteryMonitor.Start();
         _reminderCheckTimer.Start();
+        
+        // Check initial battery state and show alert if already above target
+        var initialSnapshot = _batteryMonitor.GetCurrentBatterySnapshot();
+        _logger.LogInfo($"Initial battery state on startup: {initialSnapshot}");
+        
+        var initialDecision = _alertEvaluator.EvaluateState(initialSnapshot);
+        if (initialDecision != null)
+        {
+            _lastAlertTime = DateTime.UtcNow;
+            _alertNotifier.ShowAlert(initialDecision);
+            _logger.LogInfo($"Startup alert shown: {initialDecision.AlertType}");
+        }
+        else
+        {
+            _logger.LogInfo("No startup alert needed");
+        }
+        
         UpdateTrayIcon();
         _logger.LogInfo("ChargeGuard started");
     }
@@ -117,6 +135,28 @@ public class ChargeGuardApplicationContext : ApplicationContext
         {
             _lastAlertTime = DateTime.UtcNow;
             _alertNotifier.ShowAlert(decision);
+        }
+        else
+        {
+            // Check if battery is already above target and no alert was triggered
+            // This can happen on startup when battery is already above target
+            if (e.CurrentState.IsAcPowerConnected && 
+                e.CurrentState.IsCharging && 
+                e.CurrentState.BatteryPercentage.HasValue &&
+                e.CurrentState.BatteryPercentage.Value >= _settings.NormalTargetPercentage)
+            {
+                _logger.LogInfo($"Battery already above target ({e.CurrentState.BatteryPercentage}%), showing immediate alert");
+                
+                var alertDecision = new ChargingAlertDecision(
+                    ChargingAlertType.Target,
+                    $"Charging target reached\nBattery is at {e.CurrentState.BatteryPercentage}%. You can disconnect the charger.",
+                    e.CurrentState.BatteryPercentage.Value,
+                    _settings.NormalTargetPercentage,
+                    playSound: _settings.SoundEnabled);
+                
+                _lastAlertTime = DateTime.UtcNow;
+                _alertNotifier.ShowAlert(alertDecision);
+            }
         }
 
         UpdateTrayIcon();
