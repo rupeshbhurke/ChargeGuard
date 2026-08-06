@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(dotnet new)",
+      "Exec(dotnet sln)",
+      "Exec(mkdir)",
+      "Exec(dotnet restore)",
+      "Exec(dotnet build)",
+      "Exec(dotnet test)",
+      "Exec(dotnet publish)",
+      "Exec(powershell)",
+      "Exec(git init)",
+      "Exec(git add)"
+    ]
+  }
+}
