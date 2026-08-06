@@ -17,8 +17,8 @@ public static partial class PowerNativeMethods
         public byte ACLineStatus;
         public byte BatteryFlag;
         public byte BatteryLifePercent;
-        public byte BatteryLifeTime;
-        public byte BatteryFullLifeTime;
+        public uint BatteryLifeTime;
+        public uint BatteryFullLifeTime;
     }
 
     /// <summary>
