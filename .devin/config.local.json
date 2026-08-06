@@ -13,7 +13,16 @@
       "Exec(git add)",
       "Exec(git commit)",
       "Exec(git branch)",
-      "Exec(git push)"
+      "Exec(git push)",
+      "Exec(git status)",
+      "Exec(git log)",
+      "Exec(Get-EventLog)",
+      "Exec(Start-Process)",
+      "Exec(Start-Sleep)",
+      "Exec(Get-Process)",
+      "Exec(Select-Object)",
+      "Exec(Stop-Process)",
+      "Exec(Get-Content)"
     ]
   }
 }
