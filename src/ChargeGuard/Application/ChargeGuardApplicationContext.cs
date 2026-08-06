@@ -6,6 +6,7 @@ using ChargeGuard.Notifications;
 using ChargeGuard.Settings;
 using Timer = System.Windows.Forms.Timer;
 using WinFormsApplication = System.Windows.Forms.Application;
+using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace ChargeGuard.Application;
 
@@ -23,6 +24,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
     private readonly NotifyIcon _notifyIcon;
     private readonly ISoundPlayer _soundPlayer;
     private readonly IAlertNotifier _alertNotifier;
+    private readonly IAlertNotifier _tooltipNotifier;
     private readonly Timer _reminderCheckTimer;
     private DateTime? _lastAlertTime;
 
@@ -46,7 +48,8 @@ public class ChargeGuardApplicationContext : ApplicationContext
         _soundPlayer = soundPlayer ?? throw new ArgumentNullException(nameof(soundPlayer));
 
         _notifyIcon = CreateNotifyIcon();
-        _alertNotifier = new NotifyIconAlertNotifier(_notifyIcon, _soundPlayer, _logger);
+        _alertNotifier = new DialogAlertNotifier(_soundPlayer, _logger);
+        _tooltipNotifier = new NotifyIconAlertNotifier(_notifyIcon, _soundPlayer, _logger);
 
         _reminderCheckTimer = new Timer { Interval = ReminderCheckIntervalMs };
         _reminderCheckTimer.Tick += OnReminderCheckTimerTick;
@@ -171,7 +174,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
             status = $"{percentage}% on AC power";
         }
 
-        _alertNotifier.UpdateTooltip(status);
+        _tooltipNotifier.UpdateTooltip(status);
     }
 
     private void OnNotifyIconDoubleClick(object? sender, EventArgs e)
