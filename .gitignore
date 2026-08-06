@@ -65,6 +65,9 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
+# Inno Setup output
+installer/Output/
+
 # Windows shortcuts
 *.lnk
 

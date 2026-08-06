@@ -15,8 +15,6 @@ A lightweight Windows 11 desktop utility that monitors your laptop's battery and
 
 ## 📖 Features
 
-## Features
-
 - **Battery Monitoring**: Real-time monitoring of battery percentage and charging status using Windows native power APIs
 - **Configurable Alerts**: Set your preferred charging target (default: 80%) with advance warnings
 - **Repeated Reminders**: Optional reminders if you forget to disconnect the charger
@@ -72,9 +70,10 @@ dotnet test --collect:"XPlat Code Coverage"
 ### Using the Installer (Recommended)
 
 1. Download the latest installer from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
-2. Run the `ChargeGuard-Setup.exe` installer
+2. Run the `ChargeGuard-Setup.exe` installer (requires administrator privileges)
 3. Follow the installation wizard
-4. Optionally enable "Start with Windows" during installation
+4. The installer will check for .NET 9.0 Desktop Runtime and warn if not installed
+5. Optionally enable "Start with Windows" during installation
 
 ### Manual Installation
 
@@ -106,8 +105,9 @@ Log files are automatically rotated with a maximum of 10 files at 5 MB each.
 ## Startup Behavior
 
 - By default, ChargeGuard starts with Windows and runs minimized in the notification area
-- Startup registration is per-user (no administrator privileges required)
+- Startup registration is per-user (HKCU registry)
 - You can change startup behavior in the settings window
+- Note: The installer requires administrator privileges to check for .NET 9.0 Desktop Runtime
 
 ## Privacy Statement
 

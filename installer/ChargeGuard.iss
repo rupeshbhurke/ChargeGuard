@@ -15,7 +15,7 @@ OutputBaseFilename=ChargeGuard-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 ; Install for current user only (no elevation required)
 AppCopyright=Copyright (C) 2024 Rupesh Bhurke
 UninstallDisplayIcon={app}\ChargeGuard.exe
@@ -53,31 +53,154 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; User can manually delete %LocalAppData%\ChargeGuard if desired
 
 [Code]
+// Helper function to split a string by a delimiter
+function SplitString(const S: String; const Delimiter: String): TArrayOfString;
+var
+  I, Start, Count: Integer;
+  DelimLen: Integer;
+begin
+  DelimLen := Length(Delimiter);
+  if DelimLen = 0 then
+  begin
+    SetArrayLength(Result, 1);
+    Result[0] := S;
+    Exit;
+  end;
+  
+  Count := 0;
+  Start := 1;
+  
+  // First pass: count the number of parts
+  for I := 1 to Length(S) - DelimLen + 1 do
+  begin
+    if Copy(S, I, DelimLen) = Delimiter then
+    begin
+      Count := Count + 1;
+      Start := I + DelimLen;
+    end;
+  end;
+  
+  // Add the last part
+  if Start <= Length(S) then
+    Count := Count + 1;
+  
+  // Allocate array
+  SetArrayLength(Result, Count);
+  
+  // Second pass: fill the array
+  Count := 0;
+  Start := 1;
+  for I := 1 to Length(S) - DelimLen + 1 do
+  begin
+    if Copy(S, I, DelimLen) = Delimiter then
+    begin
+      Result[Count] := Copy(S, Start, I - Start);
+      Count := Count + 1;
+      Start := I + DelimLen;
+    end;
+  end;
+  
+  // Add the last part
+  if Start <= Length(S) then
+    Result[Count] := Copy(S, Start, Length(S) - Start + 1);
+end;
+
+// Helper function to compare version strings (e.g., "9.0.0" vs "8.0.0")
+// Returns: -1 if V1 < V2, 0 if V1 = V2, 1 if V1 > V2
+function CompareVersion(V1, V2: String): Integer;
+var
+  Parts1, Parts2: TArrayOfString;
+  I, MaxLen: Integer;
+  Num1, Num2: Integer;
+begin
+  Result := 0;
+  
+  // Split version strings by dots
+  Parts1 := SplitString(V1, '.');
+  Parts2 := SplitString(V2, '.');
+  
+  // Determine maximum length to compare
+  MaxLen := GetArrayLength(Parts1);
+  if GetArrayLength(Parts2) > MaxLen then
+    MaxLen := GetArrayLength(Parts2);
+  
+  // Compare each part
+  for I := 0 to MaxLen - 1 do
+  begin
+    // Default to 0 if part doesn't exist
+    if I < GetArrayLength(Parts1) then
+      Num1 := StrToIntDef(Parts1[I], 0)
+    else
+      Num1 := 0;
+      
+    if I < GetArrayLength(Parts2) then
+      Num2 := StrToIntDef(Parts2[I], 0)
+    else
+      Num2 := 0;
+    
+    if Num1 < Num2 then
+    begin
+      Result := -1;
+      Exit;
+    end
+    else if Num1 > Num2 then
+    begin
+      Result := 1;
+      Exit;
+    end;
+  end;
+  
+  // Versions are equal
+  Result := 0;
+end;
+
+// Check if .NET 9.0 Desktop Runtime is installed
+function IsNet90DesktopRuntimeInstalled: Boolean;
+var
+  Runtimes: TArrayOfString;
+  RegistryKey: String;
+  I: Integer;
+  MinimumVersion: String;
+begin
+  Result := False;
+  MinimumVersion := '9.0.0';
+  
+  // Check for .NET Desktop Runtime in the registry (x64)
+  RegistryKey := 'SOFTWARE\WOW6432Node\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App';
+  
+  if RegGetValueNames(HKLM, RegistryKey, Runtimes) then
+  begin
+    for I := 0 to GetArrayLength(Runtimes) - 1 do
+    begin
+      // Check if the installed version is >= 9.0.0
+      if CompareVersion(Runtimes[I], MinimumVersion) >= 0 then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 function InitializeSetup(): Boolean;
 var
-  ResultCode: Integer;
   NetRuntimeInstalled: Boolean;
 begin
   // Check if .NET 9.0 Desktop Runtime is installed
-  NetRuntimeInstalled := False;
-
-  // Check for .NET 9.0 Desktop Runtime in the registry
-  // This checks for the x64 version
-  if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', ResultCode) then
-  begin
-    // This is a basic check for .NET Framework
-    // For .NET 5+, we would need to check different registry keys
-    // For now, we'll proceed with a warning
-  end;
+  NetRuntimeInstalled := IsNet90DesktopRuntimeInstalled;
 
   // Show information about .NET 9.0 requirement
-  if MsgBox('ChargeGuard requires .NET 9.0 Desktop Runtime to run.' + #13#10 +
-            'If you are not sure it is installed, you can download it from:' + #13#10 +
-            'https://dotnet.microsoft.com/download/dotnet/9.0' + #13#10 + #13#10 +
-            'Do you want to continue with the installation?', mbConfirmation, MB_YESNO) = IDNO then
+  if not NetRuntimeInstalled then
   begin
-    Result := False;
-    Exit;
+    if MsgBox('ChargeGuard requires .NET 9.0 Desktop Runtime to run.' + #13#10 +
+              'It was not detected on your system.' + #13#10 + #13#10 +
+              'You can download it from:' + #13#10 +
+              'https://dotnet.microsoft.com/download/dotnet/9.0' + #13#10 + #13#10 +
+              'Do you want to continue with the installation anyway?', mbConfirmation, MB_YESNO) = IDNO then
+    begin
+      Result := False;
+      Exit;
+    end;
   end;
 
   Result := True;
