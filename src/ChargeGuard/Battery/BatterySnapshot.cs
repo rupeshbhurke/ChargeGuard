@@ -1,3 +1,5 @@
+using System;
+
 namespace ChargeGuard.Battery;
 
 /// <summary>
@@ -35,25 +37,34 @@ public class BatterySnapshot
     /// </summary>
     public static BatterySnapshot FromNativeStatus(PowerNativeMethods.SYSTEM_POWER_STATUS status)
     {
-        var isAcConnected = status.ACLineStatus == PowerConstants.AC_LINE_ONLINE;
-        var isBatteryAvailable = status.BatteryFlag != PowerConstants.BATTERY_FLAG_NO_BATTERY &&
-                                 status.BatteryFlag != PowerConstants.BATTERY_FLAG_UNKNOWN;
-
-        int? batteryPercentage = null;
-        if (status.BatteryLifePercent != PowerConstants.BATTERY_PERCENTAGE_UNKNOWN)
+        try
         {
-            batteryPercentage = status.BatteryLifePercent;
+            var isAcConnected = status.ACLineStatus == PowerConstants.AC_LINE_ONLINE;
+            var isBatteryAvailable = status.BatteryFlag != PowerConstants.BATTERY_FLAG_NO_BATTERY &&
+                                     status.BatteryFlag != PowerConstants.BATTERY_FLAG_UNKNOWN;
+
+            int? batteryPercentage = null;
+            if (status.BatteryLifePercent != PowerConstants.BATTERY_PERCENTAGE_UNKNOWN)
+            {
+                // Ensure the percentage is within valid range
+                batteryPercentage = Math.Min(100, Math.Max(0, (int)status.BatteryLifePercent));
+            }
+
+            var isCharging = (status.BatteryFlag & PowerConstants.BATTERY_FLAG_CHARGING) != 0;
+
+            return new BatterySnapshot
+            {
+                IsAcPowerConnected = isAcConnected,
+                BatteryPercentage = batteryPercentage,
+                IsCharging = isCharging,
+                IsBatteryAvailable = isBatteryAvailable
+            };
         }
-
-        var isCharging = (status.BatteryFlag & PowerConstants.BATTERY_FLAG_CHARGING) != 0;
-
-        return new BatterySnapshot
+        catch
         {
-            IsAcPowerConnected = isAcConnected,
-            BatteryPercentage = batteryPercentage,
-            IsCharging = isCharging,
-            IsBatteryAvailable = isBatteryAvailable
-        };
+            // If struct conversion fails, return unavailable state
+            return CreateUnavailable();
+        }
     }
 
     /// <summary>

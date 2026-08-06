@@ -29,7 +29,7 @@ public static partial class PowerNativeMethods
     {
         public Guid PowerSetting;
         public uint DataLength;
-        public byte Data;
+        public byte Data; // Variable-length data, actual size depends on DataLength
     }
 
     /// <summary>

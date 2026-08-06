@@ -35,13 +35,19 @@ public class NativePowerMessageWindow : NativeWindow, IDisposable
     {
         try
         {
+            if (Handle == nint.Zero)
+            {
+                _logger.LogError("Cannot register power notifications: window handle is zero");
+                return;
+            }
+
             _batteryPercentageNotificationHandle = PowerNativeMethods.RegisterPowerSettingNotification(
                 Handle,
                 PowerConstants.GUID_BATTERY_PERCENTAGE_REMAINING);
 
             if (_batteryPercentageNotificationHandle == nint.Zero)
             {
-                _logger.LogError("Failed to register battery percentage notification");
+                _logger.LogWarning("Failed to register battery percentage notification (fallback timer will be used)");
             }
             else
             {
@@ -54,7 +60,7 @@ public class NativePowerMessageWindow : NativeWindow, IDisposable
 
             if (_acdcPowerSourceNotificationHandle == nint.Zero)
             {
-                _logger.LogError("Failed to register AC/DC power source notification");
+                _logger.LogWarning("Failed to register AC/DC power source notification (fallback timer will be used)");
             }
             else
             {
@@ -97,6 +103,12 @@ public class NativePowerMessageWindow : NativeWindow, IDisposable
     {
         try
         {
+            if (lParam == nint.Zero)
+            {
+                _logger.LogWarning("Power setting change received with null lParam");
+                return;
+            }
+
             var setting = Marshal.PtrToStructure<PowerNativeMethods.POWERBROADCAST_SETTING>(lParam);
 
             if (setting.PowerSetting == PowerConstants.GUID_BATTERY_PERCENTAGE_REMAINING ||
