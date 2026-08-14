@@ -37,6 +37,7 @@ public partial class SettingsForm : Form
     private CheckBox _soundEnabledCheckBox = null!;
     private CheckBox _startWithWindowsCheckBox = null!;
     private CheckBox _startMinimizedCheckBox = null!;
+    private NumericUpDown _notificationTimeoutInput = null!;
 
     public SettingsForm(
         ChargeGuardSettings settings,
@@ -363,6 +364,24 @@ public partial class SettingsForm : Form
             Font = new Font("Segoe UI", 9)
         };
 
+        // Notification timeout
+        var notificationTimeoutLabel = new Label {
+            Text = "Notification Timeout (sec):",
+            Location = new Point(15, 345),
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9)
+        };
+        _notificationTimeoutInput = new NumericUpDown
+        {
+            Minimum = 3,
+            Maximum = 60,
+            Value = (decimal)_settings.NotificationTimeout.TotalSeconds,
+            Location = new Point(200, 343),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
+        };
+
         // Add controls
         group.Controls.Add(targetLabel);
         group.Controls.Add(_targetPercentageInput);
@@ -379,6 +398,8 @@ public partial class SettingsForm : Form
         group.Controls.Add(_soundEnabledCheckBox);
         group.Controls.Add(_startWithWindowsCheckBox);
         group.Controls.Add(_startMinimizedCheckBox);
+        group.Controls.Add(notificationTimeoutLabel);
+        group.Controls.Add(_notificationTimeoutInput);
 
         return group;
     }
@@ -416,6 +437,7 @@ public partial class SettingsForm : Form
         _soundEnabledCheckBox.Checked = _settings.SoundEnabled;
         _startWithWindowsCheckBox.Checked = _settings.StartWithWindows;
         _startMinimizedCheckBox.Checked = _settings.StartMinimized;
+        _notificationTimeoutInput.Value = (decimal)_settings.NotificationTimeout.TotalSeconds;
     }
 
     private void RefreshBatteryStatus()
@@ -450,6 +472,7 @@ public partial class SettingsForm : Form
         _settings.SoundEnabled = _soundEnabledCheckBox.Checked;
         _settings.StartWithWindows = _startWithWindowsCheckBox.Checked;
         _settings.StartMinimized = _startMinimizedCheckBox.Checked;
+        _settings.NotificationTimeout = TimeSpan.FromSeconds((double)_notificationTimeoutInput.Value);
 
         // Validate and normalize
         _settings.ValidateAndNormalize();

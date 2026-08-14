@@ -12,12 +12,14 @@ public class NotifyIconAlertNotifier : IAlertNotifier
     private readonly NotifyIcon _notifyIcon;
     private readonly ISoundPlayer _soundPlayer;
     private readonly IAppLogger _logger;
+    private readonly Settings.ChargeGuardSettings _settings;
 
-    public NotifyIconAlertNotifier(NotifyIcon notifyIcon, ISoundPlayer soundPlayer, IAppLogger logger)
+    public NotifyIconAlertNotifier(NotifyIcon notifyIcon, ISoundPlayer soundPlayer, IAppLogger logger, Settings.ChargeGuardSettings settings)
     {
         _notifyIcon = notifyIcon ?? throw new ArgumentNullException(nameof(notifyIcon));
         _soundPlayer = soundPlayer ?? throw new ArgumentNullException(nameof(soundPlayer));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     }
 
     public void ShowAlert(ChargingAlertDecision decision)
@@ -37,7 +39,7 @@ public class NotifyIconAlertNotifier : IAlertNotifier
             _notifyIcon.BalloonTipTitle = GetAlertTitle(decision.AlertType);
             _notifyIcon.BalloonTipText = decision.Message;
             _notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-            _notifyIcon.ShowBalloonTip(30000); // 30 seconds timeout
+            _notifyIcon.ShowBalloonTip((int)_settings.NotificationTimeout.TotalMilliseconds);
 
             _logger.LogInfo($"Alert shown: {decision.AlertType} - {decision.Message}");
         }

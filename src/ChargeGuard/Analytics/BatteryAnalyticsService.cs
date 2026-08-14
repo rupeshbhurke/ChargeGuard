@@ -131,6 +131,9 @@ public class BatteryAnalyticsService : IDisposable
         {
             _overchargeStartTime = null;
         }
+
+        // Update daily stats
+        UpdateDailyStats(snapshot);
     }
 
     private void StartChargingSession(BatterySnapshot snapshot)
@@ -204,8 +207,35 @@ public class BatteryAnalyticsService : IDisposable
 
         command.ExecuteNonQuery();
 
+        // Update daily stats to increment charging session count
+        UpdateDailyStatsSessionCount();
+
         _currentChargingSession = null;
         _overchargeStartTime = null;
+    }
+
+    private void UpdateDailyStatsSessionCount()
+    {
+        try
+        {
+            var today = DateTime.UtcNow.Date;
+
+            using var connection = _database.GetConnection();
+            using var command = connection.CreateCommand();
+
+            command.CommandText = @"
+                UPDATE DailyStats
+                SET number_of_charging_sessions = number_of_charging_sessions + 1
+                WHERE date = @date
+            ";
+            command.Parameters.AddWithValue("@date", today.ToString("o"));
+
+            command.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to update daily stats session count", ex);
+        }
     }
 
     private void TrackOvercharge(int currentPercentage)
@@ -228,6 +258,130 @@ public class BatteryAnalyticsService : IDisposable
     {
         // Timer-based collection is handled by battery state changes
         // This is a placeholder for periodic collection if needed
+    }
+
+    private void UpdateDailyStats(BatterySnapshot snapshot)
+    {
+        try
+        {
+            var today = DateTime.UtcNow.Date;
+
+            using var connection = _database.GetConnection();
+            using var command = connection.CreateCommand();
+
+            // Check if daily stats exist for today
+            command.CommandText = @"
+                SELECT id, total_charging_time_minutes, total_discharging_time_minutes,
+                       number_of_charging_sessions, max_battery_percentage, min_battery_percentage,
+                       overcharge_minutes, number_of_overcharge_events
+                FROM DailyStats
+                WHERE date = @date
+            ";
+            command.Parameters.AddWithValue("@date", today.ToString("o"));
+
+            double totalChargingTime = 0;
+            double totalDischargingTime = 0;
+            int chargingSessions = 0;
+            int maxLevel = 0;
+            int minLevel = 100;
+            double overchargeMinutes = 0;
+            int overchargeEvents = 0;
+            int? existingId = null;
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                existingId = reader.GetInt32(0);
+                totalChargingTime = reader.IsDBNull(1) ? 0 : reader.GetDouble(1);
+                totalDischargingTime = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
+                chargingSessions = reader.GetInt32(3);
+                maxLevel = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+                minLevel = reader.IsDBNull(5) ? 100 : reader.GetInt32(5);
+                overchargeMinutes = reader.IsDBNull(6) ? 0 : reader.GetDouble(6);
+                overchargeEvents = reader.GetInt32(7);
+            }
+            reader.Close();
+
+            // Update values based on current state
+            if (snapshot.BatteryPercentage.HasValue)
+            {
+                maxLevel = Math.Max(maxLevel, snapshot.BatteryPercentage.Value);
+                minLevel = Math.Min(minLevel, snapshot.BatteryPercentage.Value);
+            }
+
+            // Add 5 minutes (collection interval) to appropriate time bucket
+            if (snapshot.IsCharging)
+            {
+                totalChargingTime += 5;
+            }
+            else
+            {
+                totalDischargingTime += 5;
+            }
+
+            // Update overcharge tracking
+            if (_overchargeStartTime.HasValue)
+            {
+                overchargeMinutes += 5;
+                if (overchargeEvents == 0)
+                {
+                    overchargeEvents = 1;
+                }
+            }
+
+            // Update or insert daily stats
+            using var upsertCommand = connection.CreateCommand();
+            if (existingId.HasValue)
+            {
+                upsertCommand.CommandText = @"
+                    UPDATE DailyStats
+                    SET total_charging_time_minutes = @total_charging_time,
+                        total_discharging_time_minutes = @total_discharging_time,
+                        number_of_charging_sessions = @charging_sessions,
+                        max_battery_percentage = @max_level,
+                        min_battery_percentage = @min_level,
+                        overcharge_minutes = @overcharge_minutes,
+                        number_of_overcharge_events = @overcharge_events,
+                        average_charge_time_minutes = @avg_charge_time,
+                        average_discharge_time_minutes = @avg_discharge_time
+                    WHERE id = @id
+                ";
+                upsertCommand.Parameters.AddWithValue("@id", existingId.Value);
+            }
+            else
+            {
+                upsertCommand.CommandText = @"
+                    INSERT INTO DailyStats (date, total_charging_time_minutes, total_discharging_time_minutes,
+                                          number_of_charging_sessions, max_battery_percentage, min_battery_percentage,
+                                          overcharge_minutes, number_of_overcharge_events,
+                                          average_charge_time_minutes, average_discharge_time_minutes)
+                    VALUES (@date, @total_charging_time, @total_discharging_time, @charging_sessions,
+                            @max_level, @min_level, @overcharge_minutes, @overcharge_events,
+                            @avg_charge_time, @avg_discharge_time)
+                ";
+                upsertCommand.Parameters.AddWithValue("@date", today.ToString("o"));
+            }
+
+            upsertCommand.Parameters.AddWithValue("@total_charging_time", totalChargingTime);
+            upsertCommand.Parameters.AddWithValue("@total_discharging_time", totalDischargingTime);
+            upsertCommand.Parameters.AddWithValue("@charging_sessions", chargingSessions);
+            upsertCommand.Parameters.AddWithValue("@max_level", maxLevel);
+            upsertCommand.Parameters.AddWithValue("@min_level", minLevel);
+            upsertCommand.Parameters.AddWithValue("@overcharge_minutes", overchargeMinutes);
+            upsertCommand.Parameters.AddWithValue("@overcharge_events", overchargeEvents);
+
+            // Calculate averages
+            double avgChargeTime = chargingSessions > 0 ? totalChargingTime / chargingSessions : 0;
+            double avgDischargeTime = totalDischargingTime > 0 ? totalDischargingTime : 0; // No session count for discharge
+            upsertCommand.Parameters.AddWithValue("@avg_charge_time", avgChargeTime);
+            upsertCommand.Parameters.AddWithValue("@avg_discharge_time", avgDischargeTime);
+
+            upsertCommand.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to update daily stats", ex);
+        }
     }
 
     public void Dispose()

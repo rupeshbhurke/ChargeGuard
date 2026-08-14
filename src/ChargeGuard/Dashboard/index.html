@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChargeGuard Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <div id="header">
+        <h1>ChargeGuard Battery Dashboard</h1>
+        <div id="controls-bar">
+            <label for="chart-selector">View:</label>
+            <select id="chart-selector">
+                <option value="all">All Charts</option>
+                <option value="battery-level">Battery Level Over Time</option>
+                <option value="discharge-rate">Discharge Rate Curves</option>
+                <option value="discharge-sessions">Discharge Session Analysis</option>
+                <option value="heatmap">Daily Discharge Heatmap</option>
+                <option value="comparison">Charge vs Discharge Comparison</option>
+            </select>
+        </div>
+        <div id="stats-bar">
+            <div class="stat-card">
+                <span class="stat-label">Charging Sessions</span>
+                <span class="stat-value" id="stat-sessions">--</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Avg Charge Duration</span>
+                <span class="stat-value" id="stat-avg-duration">--</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Overcharge Events</span>
+                <span class="stat-value" id="stat-overcharge">--</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Avg Overcharge Duration</span>
+                <span class="stat-value" id="stat-avg-overcharge">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="charts-grid">
+        <div class="chart-container" id="chart-battery-level">
+            <div class="chart-title">Battery Level Over Time</div>
+            <div class="chart-body" id="plot-battery-level"></div>
+        </div>
+
+        <div class="chart-container" id="chart-discharge-rate">
+            <div class="chart-title">Discharge Rate Curves</div>
+            <div class="chart-body" id="plot-discharge-rate"></div>
+        </div>
+
+        <div class="chart-container" id="chart-discharge-sessions">
+            <div class="chart-title">Discharge Session Analysis</div>
+            <div class="chart-body" id="plot-discharge-sessions"></div>
+        </div>
+
+        <div class="chart-container" id="chart-heatmap">
+            <div class="chart-title">Daily Discharge Heatmap (Hour vs Day)</div>
+            <div class="chart-body" id="plot-heatmap"></div>
+        </div>
+
+        <div class="chart-container full-width" id="chart-comparison">
+            <div class="chart-title">Charge vs Discharge Comparison</div>
+            <div class="chart-body" id="plot-comparison"></div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading dashboard data...</p>
+    </div>
+
+    <div id="no-data-message" style="display:none;">
+        <p>No data available for the selected date range.</p>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

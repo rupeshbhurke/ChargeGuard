@@ -26,6 +26,10 @@ static class Program
         WinFormsApplication.ThreadException += OnThreadException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
+        RollingFileLogger? logger = null;
+        SingleInstanceManager? singleInstanceManager = null;
+        ChargeGuardApplicationContext? applicationContext = null;
+
         try
         {
             // Initialize logging
@@ -34,12 +38,12 @@ static class Program
                 "ChargeGuard",
                 "Logs");
 
-            var logger = new RollingFileLogger(logDirectory);
+            logger = new RollingFileLogger(logDirectory);
             logger.LogInfo("ChargeGuard starting");
             logger.LogInfo($"Version: {GetApplicationVersion()}");
 
             // Check single instance
-            var singleInstanceManager = new SingleInstanceManager(logger);
+            singleInstanceManager = new SingleInstanceManager(logger);
             if (!singleInstanceManager.TryAcquireMutex())
             {
                 logger.LogInfo("Another instance is already running, exiting");
@@ -84,7 +88,7 @@ static class Program
             var soundPlayer = new SystemSoundPlayer();
 
             // Create application context
-            var applicationContext = new ChargeGuardApplicationContext(
+            applicationContext = new ChargeGuardApplicationContext(
                 logger,
                 settings,
                 settingsManager,
@@ -100,12 +104,20 @@ static class Program
             WinFormsApplication.Run(applicationContext);
 
             // Cleanup on exit
-            applicationContext.Stop();
-            singleInstanceManager.Dispose();
-            logger.Dispose();
+            try
+            {
+                applicationContext.Stop();
+                singleInstanceManager.Dispose();
+                logger.Dispose();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError("Error during shutdown", ex);
+            }
         }
         catch (Exception ex)
         {
+            logger?.LogError("Failed to start ChargeGuard", ex);
             MessageBox.Show(
                 $"Failed to start ChargeGuard: {ex.Message}",
                 "ChargeGuard Error",

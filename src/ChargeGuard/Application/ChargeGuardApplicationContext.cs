@@ -66,7 +66,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
         _notifyIcon = CreateNotifyIcon();
         _alertNotifier = new DialogAlertNotifier(_soundPlayer, _logger);
-        _tooltipNotifier = new NotifyIconAlertNotifier(_notifyIcon, _soundPlayer, _logger);
+        _tooltipNotifier = new NotifyIconAlertNotifier(_notifyIcon, _soundPlayer, _logger, _settings);
 
         _reminderCheckTimer = new Timer { Interval = ReminderCheckIntervalMs };
         _reminderCheckTimer.Tick += OnReminderCheckTimerTick;

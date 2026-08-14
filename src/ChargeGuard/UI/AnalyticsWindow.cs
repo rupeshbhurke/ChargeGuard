@@ -1,6 +1,8 @@
+using System.Text.Json;
 using System.Windows.Forms;
 using ChargeGuard.Analytics;
 using ChargeGuard.Logging;
+using Microsoft.Web.WebView2.WinForms;
 
 namespace ChargeGuard.UI;
 
@@ -24,6 +26,7 @@ public partial class AnalyticsWindow : Form
     private TabPage _readingsTab = null!;
     private Label _totalSessionsLabel = null!;
     private Label _avgDurationLabel = null!;
+    private Label _avgDischargeTimeLabel = null!;
     private Label _overchargeCountLabel = null!;
     private Label _avgOverchargeDurationLabel = null!;
     private DataGridView _sessionsGrid = null!;
@@ -31,6 +34,9 @@ public partial class AnalyticsWindow : Form
     private Panel _batteryChartPanel = null!;
     private Panel _chargingChartPanel = null!;
     private int? _hoveredDataIndex = null!;
+    private TabPage _webDashboardTab = null!;
+    private WebView2 _webView = null!;
+    private bool _webViewReady = false;
 
     public AnalyticsWindow(BatteryAnalyticsQueries queries, IAppLogger logger)
     {
@@ -52,26 +58,22 @@ public partial class AnalyticsWindow : Form
         // Form properties
         this.Text = "📊 Battery Analytics";
         this.FormBorderStyle = FormBorderStyle.Sizable;
-        this.MinimumSize = new Size(800, 600);
+        this.MinimumSize = new Size(600, 400);
         this.StartPosition = FormStartPosition.CenterScreen;
         this.ClientSize = new Size(900, 700);
         this.BackColor = Color.FromArgb(245, 245, 245);
+        this.Resize += OnFormResize;
 
         // Create header
         var headerPanel = CreateHeader();
-        headerPanel.Location = new Point(0, 0);
-        headerPanel.Size = new Size(this.ClientSize.Width, 80);
 
         // Create date range selector
         var dateRangePanel = CreateDateRangeSelector();
-        dateRangePanel.Location = new Point(20, 100);
-        dateRangePanel.Size = new Size(860, 50);
 
         // Create tab control
         _tabControl = new TabControl
         {
-            Location = new Point(20, 160),
-            Size = new Size(860, 500),
+            Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 9)
         };
 
@@ -79,15 +81,17 @@ public partial class AnalyticsWindow : Form
         _summaryTab = CreateSummaryTab();
         _sessionsTab = CreateSessionsTab();
         _readingsTab = CreateReadingsTab();
+        _webDashboardTab = CreateWebDashboardTab();
 
         _tabControl.TabPages.Add(_summaryTab);
         _tabControl.TabPages.Add(_sessionsTab);
         _tabControl.TabPages.Add(_readingsTab);
+        _tabControl.TabPages.Add(_webDashboardTab);
 
-        // Add controls
-        this.Controls.Add(headerPanel);
-        this.Controls.Add(dateRangePanel);
+        // Add controls - order matters for docking (Fill goes first, then Top)
         this.Controls.Add(_tabControl);
+        this.Controls.Add(dateRangePanel);
+        this.Controls.Add(headerPanel);
 
         this.ResumeLayout(false);
     }
@@ -129,7 +133,9 @@ public partial class AnalyticsWindow : Form
         var panel = new Panel
         {
             BackColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Dock = DockStyle.Top,
+            Height = 50
         };
 
         var startDateLabel = new Label
@@ -201,21 +207,25 @@ public partial class AnalyticsWindow : Form
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(0, 120, 215),
             Location = new Point(20, 20),
-            Size = new Size(800, 120)
+            Size = new Size(800, 150),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
 
         _totalSessionsLabel = CreateModernLabel("Total Charging Sessions: --", Color.FromArgb(0, 0, 0));
         _avgDurationLabel = CreateModernLabel("Average Charge Duration: --", Color.FromArgb(0, 0, 0));
+        _avgDischargeTimeLabel = CreateModernLabel("Average Discharge Time: --", Color.FromArgb(0, 0, 0));
         _overchargeCountLabel = CreateModernLabel("Overcharge Events: --", Color.FromArgb(200, 50, 50));
         _avgOverchargeDurationLabel = CreateModernLabel("Average Overcharge Duration: --", Color.FromArgb(200, 50, 50));
 
         statisticsGroup.Controls.Add(_totalSessionsLabel);
         statisticsGroup.Controls.Add(_avgDurationLabel);
+        statisticsGroup.Controls.Add(_avgDischargeTimeLabel);
         statisticsGroup.Controls.Add(_overchargeCountLabel);
         statisticsGroup.Controls.Add(_avgOverchargeDurationLabel);
 
         _totalSessionsLabel.Location = new Point(20, 30);
         _avgDurationLabel.Location = new Point(20, 60);
+        _avgDischargeTimeLabel.Location = new Point(20, 90);
         _overchargeCountLabel.Location = new Point(400, 30);
         _avgOverchargeDurationLabel.Location = new Point(400, 60);
 
@@ -225,8 +235,9 @@ public partial class AnalyticsWindow : Form
             Text = "📉 Battery Percentage Over Time",
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(0, 120, 215),
-            Location = new Point(20, 150),
-            Size = new Size(380, 280)
+            Location = new Point(20, 180),
+            Size = new Size(350, 200),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom
         };
 
         _batteryChartPanel = new Panel
@@ -234,7 +245,8 @@ public partial class AnalyticsWindow : Form
             Location = new Point(10, 25),
             Size = new Size(360, 240),
             BackColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Dock = DockStyle.Fill
         };
         _batteryChartPanel.Paint += OnBatteryChartPaint;
         _batteryChartPanel.MouseClick += OnBatteryChartClick;
@@ -249,8 +261,9 @@ public partial class AnalyticsWindow : Form
             Text = "🔌 Charging Pattern",
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = Color.FromArgb(0, 120, 215),
-            Location = new Point(420, 150),
-            Size = new Size(380, 280)
+            Location = new Point(390, 180),
+            Size = new Size(350, 200),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
         };
 
         _chargingChartPanel = new Panel
@@ -258,7 +271,8 @@ public partial class AnalyticsWindow : Form
             Location = new Point(10, 25),
             Size = new Size(360, 240),
             BackColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            Dock = DockStyle.Fill
         };
         _chargingChartPanel.Paint += OnChargingChartPaint;
         _chargingChartPanel.MouseClick += OnChargingChartClick;
@@ -288,7 +302,8 @@ public partial class AnalyticsWindow : Form
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            Font = new Font("Segoe UI", 9)
+            Font = new Font("Segoe UI", 9),
+            Dock = DockStyle.Fill
         };
 
         _sessionsGrid.Columns.Add("StartTime", "Start Time");
@@ -319,7 +334,8 @@ public partial class AnalyticsWindow : Form
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            Font = new Font("Segoe UI", 9)
+            Font = new Font("Segoe UI", 9),
+            Dock = DockStyle.Fill
         };
 
         _readingsGrid.Columns.Add("Timestamp", "Timestamp");
@@ -330,6 +346,154 @@ public partial class AnalyticsWindow : Form
         tab.Controls.Add(_readingsGrid);
 
         return tab;
+    }
+
+    private TabPage CreateWebDashboardTab()
+    {
+        var tab = new TabPage("🌐 Web Dashboard");
+        tab.BackColor = Color.White;
+
+        _webView = new WebView2
+        {
+            Dock = DockStyle.Fill,
+            DefaultBackgroundColor = Color.White
+        };
+
+        tab.Controls.Add(_webView);
+
+        // Initialize WebView2 asynchronously
+        _ = InitializeWebView2Async();
+
+        return tab;
+    }
+
+    private async Task InitializeWebView2Async()
+    {
+        try
+        {
+            await _webView.EnsureCoreWebView2Async(null);
+
+            var dashboardPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "Dashboard",
+                "index.html");
+
+            if (File.Exists(dashboardPath))
+            {
+                _webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    "chargeguard.dashboard",
+                    Path.GetDirectoryName(dashboardPath)!,
+                    Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
+
+                _webView.CoreWebView2.Navigate($"https://chargeguard.dashboard/index.html");
+            }
+            else
+            {
+                _webView.CoreWebView2.NavigateToString(
+                    "<html><body><h2>Dashboard files not found.</h2><p>Expected at: " +
+                    dashboardPath.Replace("<", "&lt;").Replace(">", "&gt;") +
+                    "</p></body></html>");
+            }
+
+            _webView.WebMessageReceived += OnWebViewMessageReceived;
+            _webViewReady = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to initialize WebView2", ex);
+        }
+    }
+
+    private void OnWebViewMessageReceived(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        try
+        {
+            var message = e.TryGetWebMessageAsString();
+            if (message == "requestData")
+            {
+                SendDataToWebView();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error handling WebView message", ex);
+        }
+    }
+
+    private void SendDataToWebView()
+    {
+        if (!_webViewReady || _webView.CoreWebView2 == null) return;
+
+        try
+        {
+            var readings = _queries.GetBatteryReadings(_startDate, _endDate).Take(2000).ToList();
+            var dischargeReadings = _queries.GetDischargeReadings(_startDate, _endDate);
+            var dischargeSessions = _queries.GetDischargeSessions(_startDate, _endDate);
+            var hourlyDischarge = _queries.GetHourlyDischargeData(_startDate, _endDate);
+            var chargeDischargeSummary = _queries.GetChargeDischargeSummary(_startDate, _endDate);
+            var stats = _queries.GetStatistics(_startDate, _endDate);
+
+            var payload = new
+            {
+                batteryReadings = readings.Select(r => new
+                {
+                    timestamp = r.Timestamp.ToLocalTime().ToString("o"),
+                    percentage = r.BatteryPercentage,
+                    isCharging = r.IsCharging
+                }),
+                dischargeReadings = dischargeReadings.Select(r => new
+                {
+                    timestamp = r.Timestamp.ToLocalTime().ToString("o"),
+                    percentage = r.BatteryPercentage
+                }),
+                dischargeSessions = dischargeSessions.Select(s => new
+                {
+                    startTime = s.StartTime.ToLocalTime().ToString("o"),
+                    endTime = s.EndTime?.ToLocalTime().ToString("o"),
+                    startPct = s.StartPercentage,
+                    endPct = s.EndPercentage,
+                    durationMin = Math.Round(s.DurationMinutes, 1),
+                    dropPct = s.DropPercentage,
+                    ratePerHour = Math.Round(s.RatePerHour, 1)
+                }),
+                hourlyDischarge = hourlyDischarge.Select(h => new
+                {
+                    hour = h.HourOfDay,
+                    avgLevel = Math.Round(h.AverageLevel, 1),
+                    count = h.ReadingCount
+                }),
+                chargeDischargeSummary = chargeDischargeSummary.Select(d => new
+                {
+                    date = d.Date.ToString("yyyy-MM-dd"),
+                    chargeTimeMin = Math.Round(d.ChargeTimeMinutes, 1),
+                    dischargeTimeMin = Math.Round(d.DischargeTimeMinutes, 1),
+                    avgChargeLevel = Math.Round(d.AverageChargeLevel, 1),
+                    avgDischargeLevel = Math.Round(d.AverageDischargeLevel, 1),
+                    minLevel = d.MinLevel,
+                    maxLevel = d.MaxLevel
+                }),
+                statistics = new
+                {
+                    totalSessions = stats.TotalChargingSessions,
+                    avgDuration = Math.Round(stats.AverageChargeDurationMinutes, 1),
+                    overchargeCount = stats.OverchargeCount,
+                    avgOverchargeDuration = Math.Round(stats.AverageOverchargeDurationMinutes, 1)
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            _webView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to send data to WebView", ex);
+        }
+    }
+
+    private void OnFormResize(object? sender, EventArgs e)
+    {
+        _batteryChartPanel?.Invalidate();
+        _chargingChartPanel?.Invalidate();
     }
 
     private Label CreateModernLabel(string text, Color color)
@@ -362,6 +526,18 @@ public partial class AnalyticsWindow : Form
             _avgDurationLabel.Text = $"Average Charge Duration: {stats.AverageChargeDurationMinutes:F1} minutes";
             _overchargeCountLabel.Text = $"Overcharge Events: {stats.OverchargeCount}";
             _avgOverchargeDurationLabel.Text = $"Average Overcharge Duration: {stats.AverageOverchargeDurationMinutes:F1} minutes";
+
+            // Load daily statistics for average discharge time
+            var dailyStats = _queries.GetDailyStatistics(_startDate, _endDate);
+            if (dailyStats.Count > 0)
+            {
+                var avgDischargeTime = dailyStats.Average(d => d.AverageDischargingTimeMinutes);
+                _avgDischargeTimeLabel.Text = $"Average Discharge Time: {avgDischargeTime:F1} minutes";
+            }
+            else
+            {
+                _avgDischargeTimeLabel.Text = "Average Discharge Time: --";
+            }
 
             // Load charging sessions
             var sessions = _queries.GetChargingSessions(_startDate, _endDate);
@@ -396,6 +572,9 @@ public partial class AnalyticsWindow : Form
             // Update charts
             _batteryChartPanel.Invalidate();
             _chargingChartPanel.Invalidate();
+
+            // Send data to web dashboard if ready
+            SendDataToWebView();
 
             _logger.LogInfo($"Analytics data loaded: {sessions.Count} sessions, {readings.Count} readings");
         }

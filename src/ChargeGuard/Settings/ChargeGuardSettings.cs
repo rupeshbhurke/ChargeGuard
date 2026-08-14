@@ -10,6 +10,7 @@ public class ChargeGuardSettings
     private int _escalationPercentage = 90;
     private TimeSpan _firstReminderDelay = TimeSpan.FromMinutes(5);
     private TimeSpan _repeatedReminderInterval = TimeSpan.FromMinutes(10);
+    private TimeSpan _notificationTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// Gets or sets the normal charging target percentage (1-100).
@@ -87,6 +88,15 @@ public class ChargeGuardSettings
     public int TemporaryFullChargeTarget { get; set; } = 100;
 
     /// <summary>
+    /// Gets or sets the notification timeout duration (default 10 seconds).
+    /// </summary>
+    public TimeSpan NotificationTimeout
+    {
+        get => _notificationTimeout;
+        set => _notificationTimeout = ClampNotificationTimeout(value);
+    }
+
+    /// <summary>
     /// Validates and normalizes the settings to ensure consistency.
     /// </summary>
     public void ValidateAndNormalize()
@@ -112,6 +122,9 @@ public class ChargeGuardSettings
         // Clamp reminder intervals to reasonable limits
         _firstReminderDelay = ClampReminderInterval(_firstReminderDelay);
         _repeatedReminderInterval = ClampReminderInterval(_repeatedReminderInterval);
+
+        // Clamp notification timeout to reasonable limits
+        _notificationTimeout = ClampNotificationTimeout(_notificationTimeout);
     }
 
     private static int ClampPercentage(int value)
@@ -125,6 +138,14 @@ public class ChargeGuardSettings
         var totalMinutes = value.TotalMinutes;
         totalMinutes = Math.Clamp(totalMinutes, 1, 60);
         return TimeSpan.FromMinutes(totalMinutes);
+    }
+
+    private static TimeSpan ClampNotificationTimeout(TimeSpan value)
+    {
+        // Minimum 3 seconds, maximum 60 seconds
+        var totalSeconds = value.TotalSeconds;
+        totalSeconds = Math.Clamp(totalSeconds, 3, 60);
+        return TimeSpan.FromSeconds(totalSeconds);
     }
 
     /// <summary>
@@ -144,7 +165,8 @@ public class ChargeGuardSettings
             SoundEnabled = SoundEnabled,
             StartWithWindows = StartWithWindows,
             StartMinimized = StartMinimized,
-            TemporaryFullChargeTarget = TemporaryFullChargeTarget
+            TemporaryFullChargeTarget = TemporaryFullChargeTarget,
+            NotificationTimeout = NotificationTimeout
         };
     }
 }
