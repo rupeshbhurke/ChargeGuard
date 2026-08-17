@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2011-blue.svg)](https://www.microsoft.com/windows)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue.svg)](https://www.microsoft.com/windows)
 
-A lightweight Windows 11 desktop utility that monitors your laptop's battery and alerts you when it reaches a configured charging percentage.
+A lightweight cross-platform desktop utility that monitors your laptop's battery and alerts you when it reaches a configured charging percentage.
 
 ## 🚀 Quick Start
 
