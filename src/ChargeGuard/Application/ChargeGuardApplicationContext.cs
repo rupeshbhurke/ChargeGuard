@@ -1,5 +1,8 @@
 using System.Windows.Forms;
 using System.IO;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using ChargeGuard.Analytics;
 using ChargeGuard.Battery;
 using ChargeGuard.Charging;
@@ -33,6 +36,9 @@ public class ChargeGuardApplicationContext : ApplicationContext
     private readonly BatteryAnalyticsService _analyticsService;
     private readonly BatteryAnalyticsQueries _analyticsQueries;
     private DateTime? _lastAlertTime;
+    private readonly Dictionary<int, Icon> _iconCache = new();
+    private Icon? _baseIcon;
+    private int _lastDisplayedPercentage = -1;
 
     private const int ReminderCheckIntervalMs = 1000; // Check every second for reminder due times
 
@@ -78,12 +84,10 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
     private NotifyIcon CreateNotifyIcon()
     {
-        Icon? icon = null;
-        
         // Try to load icon from the application's embedded icon
         try
         {
-            icon = Icon.ExtractAssociatedIcon(WinFormsApplication.ExecutablePath);
+            _baseIcon = Icon.ExtractAssociatedIcon(WinFormsApplication.ExecutablePath);
         }
         catch (Exception ex)
         {
@@ -95,7 +99,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
             {
                 try
                 {
-                    icon = new Icon(iconPath);
+                    _baseIcon = new Icon(iconPath);
                 }
                 catch (Exception fileEx)
                 {
@@ -108,7 +112,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
         {
             Text = "ChargeGuard — Initializing",
             Visible = true,
-            Icon = icon ?? SystemIcons.Application
+            Icon = _baseIcon ?? SystemIcons.Application
         };
 
         var contextMenu = new ContextMenuStrip();
@@ -225,37 +229,113 @@ public class ChargeGuardApplicationContext : ApplicationContext
         var session = _alertEvaluator.CurrentSession;
 
         string status;
+        int? percentage = snapshot.BatteryPercentage;
+        
         if (!snapshot.IsBatteryAvailable)
         {
             status = "battery unavailable";
+            percentage = null;
         }
         else if (!snapshot.IsAcPowerConnected)
         {
-            var percentage = snapshot.BatteryPercentage?.ToString() ?? "Unknown";
             status = $"{percentage}% on battery";
         }
         else if (session != null && session.IsTemporaryFullChargeMode)
         {
-            var percentage = snapshot.BatteryPercentage?.ToString() ?? "Unknown";
             status = $"{percentage}% charging to 100%";
         }
         else if (session != null && session.TargetAlertSent)
         {
-            var percentage = snapshot.BatteryPercentage?.ToString() ?? "Unknown";
             status = $"{percentage}% target reached";
         }
         else if (snapshot.IsCharging)
         {
-            var percentage = snapshot.BatteryPercentage?.ToString() ?? "Unknown";
             status = $"{percentage}% charging";
         }
         else
         {
-            var percentage = snapshot.BatteryPercentage?.ToString() ?? "Unknown";
             status = $"{percentage}% on AC power";
         }
 
         _tooltipNotifier.UpdateTooltip(status);
+
+        // Update icon with percentage if available and changed
+        if (percentage.HasValue && percentage != _lastDisplayedPercentage)
+        {
+            var iconWithPercentage = GetIconWithPercentage(percentage.Value);
+            if (iconWithPercentage != null)
+            {
+                _notifyIcon.Icon = iconWithPercentage;
+                _lastDisplayedPercentage = percentage.Value;
+            }
+        }
+        else if (!percentage.HasValue && _lastDisplayedPercentage != -1)
+        {
+            // Reset to base icon when percentage is unavailable
+            if (_baseIcon != null)
+            {
+                _notifyIcon.Icon = _baseIcon;
+                _lastDisplayedPercentage = -1;
+            }
+        }
+    }
+
+    private Icon? GetIconWithPercentage(int percentage)
+    {
+        if (_baseIcon == null)
+            return null;
+
+        // Check cache first
+        if (_iconCache.TryGetValue(percentage, out var cachedIcon))
+            return cachedIcon;
+
+        try
+        {
+            // Use standard Windows 11 tray icon size
+            const int iconSize = 48; // Standard tray icon size
+            using var bitmap = new Bitmap(iconSize, iconSize);
+            using var graphics = Graphics.FromImage(bitmap);
+            
+            // Draw base icon scaled to fill the bitmap
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.DrawImage(_baseIcon.ToBitmap(), 0, 0, iconSize, iconSize);
+            
+            // Configure text rendering
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            
+            // Calculate text size and position - fill most of the icon
+            string text = percentage.ToString();
+            var fontSize = (float)Math.Max(20, iconSize / 2.2);
+            using var font = new Font(new FontFamily("Arial"), fontSize, FontStyle.Bold);
+            
+            var textSize = graphics.MeasureString(text, font);
+            var x = (iconSize - textSize.Width) / 2;
+            var y = (iconSize - textSize.Height) / 2;
+            
+            // Draw semi-transparent background with minimal padding
+            var padding = 3;
+            var bgRect = new RectangleF(x - padding, y - padding, textSize.Width + padding * 2, textSize.Height + padding * 2);
+            using var bgBrush = new SolidBrush(Color.FromArgb(240, Color.Black));
+            graphics.FillRectangle(bgBrush, bgRect);
+            
+            // Draw percentage text
+            using var textBrush = new SolidBrush(Color.White);
+            graphics.DrawString(text, font, textBrush, x, y);
+            
+            // Create icon from bitmap
+            var icon = Icon.FromHandle(bitmap.GetHicon());
+            
+            // Cache the icon
+            _iconCache[percentage] = icon;
+            
+            return icon;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to create icon with percentage {percentage}: {ex.Message}");
+            return _baseIcon;
+        }
     }
 
     private void OnNotifyIconDoubleClick(object? sender, EventArgs e)
@@ -404,6 +484,15 @@ public class ChargeGuardApplicationContext : ApplicationContext
             _reminderCheckTimer.Dispose();
             _batteryMonitor.Dispose();
             _notifyIcon.Dispose();
+            
+            // Dispose cached icons
+            foreach (var icon in _iconCache.Values)
+            {
+                icon?.Dispose();
+            }
+            _iconCache.Clear();
+            
+            _baseIcon?.Dispose();
         }
 
         base.Dispose(disposing);
