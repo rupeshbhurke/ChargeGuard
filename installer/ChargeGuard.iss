@@ -19,6 +19,7 @@ PrivilegesRequired=admin
 ; Install for current user only (no elevation required)
 AppCopyright=Copyright (C) 2024 Rupesh Bhurke
 UninstallDisplayIcon={app}\ChargeGuard.exe
+SetupIconFile=..\IconFile\ChargeGuard.ico
 
 ; .NET Runtime check
 ; Note: This checks if .NET Desktop Runtime is installed
@@ -34,6 +35,8 @@ Name: "startup"; Description: "Start ChargeGuard with Windows"; GroupDescription
 [Files]
 ; Main application files
 Source: "..\src\ChargeGuard\bin\Release\net9.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Icon file
+Source: "..\IconFile\ChargeGuard.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\ChargeGuard"; Filename: "{app}\ChargeGuard.exe"; Comment: "Battery Charging Alert Utility"

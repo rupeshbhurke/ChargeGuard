@@ -20,5 +20,6 @@ sealed class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
+            .WithIcon(new Avalonia.Media.Imaging.Bitmap("Assets/ChargeGuard.ico"))
             .LogToTrace();
 }

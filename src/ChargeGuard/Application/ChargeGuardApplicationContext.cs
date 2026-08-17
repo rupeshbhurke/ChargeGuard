@@ -78,11 +78,37 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
     private NotifyIcon CreateNotifyIcon()
     {
+        Icon? icon = null;
+        
+        // Try to load icon from the application's embedded icon
+        try
+        {
+            icon = Icon.ExtractAssociatedIcon(WinFormsApplication.ExecutablePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to extract icon from executable: {ex.Message}");
+            
+            // Fallback to loading from file
+            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ChargeGuard.ico");
+            if (File.Exists(iconPath))
+            {
+                try
+                {
+                    icon = new Icon(iconPath);
+                }
+                catch (Exception fileEx)
+                {
+                    _logger.LogWarning($"Failed to load icon from {iconPath}: {fileEx.Message}");
+                }
+            }
+        }
+        
         var notifyIcon = new NotifyIcon
         {
             Text = "ChargeGuard — Initializing",
             Visible = true,
-            Icon = SystemIcons.Application
+            Icon = icon ?? SystemIcons.Application
         };
 
         var contextMenu = new ContextMenuStrip();
