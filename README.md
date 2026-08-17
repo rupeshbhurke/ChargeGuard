@@ -20,6 +20,10 @@ A lightweight Windows 11 desktop utility that monitors your laptop's battery and
 - **Repeated Reminders**: Optional reminders if you forget to disconnect the charger
 - **Escalation Alerts**: Stronger alerts when battery exceeds target significantly
 - **Temporary 100% Mode**: Quick option to charge to 100% for this session only
+- **Configurable Notification Timeout**: Adjust how long alerts display before auto-dismissing (3-60 seconds, default 10)
+- **Battery Analytics**: Track charging patterns, discharge rates, and battery health over time
+- **Interactive Dashboard**: WebView2-based web dashboard with interactive charts using Plotly.js
+- **Daily Statistics**: View average charging/discharging times, session counts, and overcharge tracking
 - **Tray Icon Application**: Runs unobtrusively in the notification area
 - **Privacy-Focused**: No network calls, telemetry, or cloud services
 - **Lightweight**: Minimal resource usage with no heavy dependencies
@@ -29,6 +33,8 @@ A lightweight Windows 11 desktop utility that monitors your laptop's battery and
 - **Language**: C# (.NET 9.0)
 - **Framework**: Windows Forms (Windows), AvaloniaUI (Linux - in development)
 - **Native APIs**: Direct Win32 power-event APIs through P/Invoke (Windows), UPower D-Bus (Linux - planned)
+- **Database**: SQLite for battery analytics storage
+- **Web Dashboard**: WebView2 with Plotly.js for interactive charts
 - **Deployment**: Framework-dependent deployment
 - **Target**: Windows 11 (current), Ubuntu Linux (in development)
 
@@ -91,6 +97,13 @@ See the [Build Instructions](#build-instructions) section below.
 Settings are stored in:
 ```
 %LocalAppData%\ChargeGuard\settings.json
+```
+
+## Database File Location
+
+Battery analytics database is stored in:
+```
+%LocalAppData%\ChargeGuard\battery_analytics.db
 ```
 
 ## Log File Location
@@ -164,6 +177,23 @@ Configure the following in the settings window:
 - **Enable Sound**: Play notification sounds
 - **Start with Windows**: Automatically start with Windows
 - **Start Minimized**: Start minimized to the notification area
+- **Notification Timeout**: How long alerts display before auto-dismissing (3-60 seconds, default 10)
+
+### Analytics Dashboard
+
+Access the battery analytics dashboard from the tray icon menu:
+
+- **Battery Percentage Over Time**: Visual chart showing battery level changes
+- **Charging Pattern**: Timeline of charging/discharging periods
+- **Charging Sessions**: Detailed list of all charging sessions
+- **Battery Readings**: Raw battery data with timestamps
+- **Web Dashboard**: Interactive charts with Plotly.js for advanced analysis
+
+The dashboard tracks:
+- Average charging and discharging times
+- Total charging sessions and overcharge events
+- Daily battery statistics
+- Battery percentage trends over time
 
 ## Architecture
 

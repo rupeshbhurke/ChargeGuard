@@ -120,6 +120,7 @@ ChargeGuard is designed as a lightweight, event-driven Windows application with 
   - Startup with Windows
   - Start minimized
   - Temporary full charge target
+  - Notification timeout (3-60 seconds, default 10)
 - `ValidateAndNormalize()`: Ensures settings consistency
 - `Clone()`: Creates a copy of settings
 
@@ -195,6 +196,66 @@ ChargeGuard is designed as a lightweight, event-driven Windows application with 
 - Simple about dialog
 - Shows application version
 - Displays privacy information
+
+#### AnalyticsWindow.cs
+- Battery analytics reporting window
+- Multiple tabs: Summary, Sessions, Readings, Web Dashboard
+- GDI+ charts for battery percentage and charging patterns
+- DataGridView for tabular data display
+- WebView2 integration for interactive Plotly.js charts
+- Date range filtering for reports
+
+### 8. Analytics Layer (`Analytics/`)
+
+#### BatteryDatabase.cs
+- SQLite database management
+- Schema creation for BatteryReadings, ChargingSessions, DailyStats tables
+- Connection management and disposal
+- Stores in `%LocalAppData%\ChargeGuard\battery_analytics.db`
+
+#### BatteryAnalyticsService.cs
+- Collects battery readings at regular intervals
+- Tracks charging sessions (start/end detection)
+- Updates daily statistics (charging/discharging time, session counts)
+- Overcharge detection and tracking
+- Integrates with BatteryMonitor for data collection
+
+#### BatteryAnalyticsQueries.cs
+- Query interface for analytics data
+- Methods:
+  - `GetStatistics()`: Overall charging statistics
+  - `GetChargingSessions()`: Session history for date range
+  - `GetBatteryReadings()`: Raw battery data
+  - `GetDailyStatistics()`: Daily aggregated stats
+  - `GetDischargeReadings()`: Discharge-specific data
+  - `IdentifyDischargeSessions()`: Continuous discharge session detection
+
+#### BatteryReading.cs
+- DTO for individual battery readings
+- Contains timestamp, percentage, charging status, AC connection
+
+#### ChargingSession.cs
+- DTO for charging session data
+- Contains start/end times, percentages, duration, overcharge info
+
+### 9. Web Dashboard (`Dashboard/`)
+
+#### index.html
+- HTML structure for WebView2 dashboard
+- Header with stats display
+- Chart selector dropdown
+- Chart containers for Plotly.js
+
+#### styles.css
+- Modern dark theme styling
+- Responsive layout
+- Chart visibility controls for single-chart mode
+
+#### dashboard.js
+- Plotly.js chart rendering
+- Chart data visualization (battery trends, charging patterns, discharge analysis)
+- Chart selector logic
+- C# message bridge for data updates
 
 ## Win32 Power Notification Flow
 
