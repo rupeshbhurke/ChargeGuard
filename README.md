@@ -40,8 +40,14 @@ A lightweight cross-platform desktop utility that monitors your laptop's battery
 
 ## Prerequisites
 
-- Windows 11
+### Windows
+- Windows 11 (primary platform)
 - .NET 9.0 Desktop Runtime (or .NET 9.0 SDK for building from source)
+
+### Linux (Ubuntu/Debian)
+- Ubuntu 20.04+ or Debian 11+ (in development)
+- .NET 9.0 Runtime (or .NET 9.0 SDK for building from source)
+- UPower D-Bus service (typically pre-installed)
 
 ## Build Instructions
 
@@ -73,7 +79,9 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ## Installation
 
-### Using the Installer (Recommended)
+### Windows
+
+#### Using the Installer (Recommended)
 
 1. Download the latest installer from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
 2. Run the `ChargeGuard-Setup.exe` installer (requires administrator privileges)
@@ -81,12 +89,29 @@ dotnet test --collect:"XPlat Code Coverage"
 4. The installer will check for .NET 9.0 Desktop Runtime and warn if not installed
 5. Optionally enable "Start with Windows" during installation
 
-### Manual Installation
+#### Manual Installation
 
 1. Download the latest release from the [Releases page](https://github.com/rupeshbhurke/ChargeGuard/releases)
 2. Extract the files to a folder of your choice (e.g., `C:\Program Files\ChargeGuard`)
 3. Create a desktop shortcut if desired
 4. Run `ChargeGuard.exe` to start the application
+
+### Linux (Ubuntu/Debian) - In Development
+
+Linux support is currently in development. To build and run from source:
+
+```bash
+# Install .NET 9.0 Runtime
+wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+chmod +x dotnet-install.sh
+./dotnet-install.sh --channel 9.0 --runtime aspnetcore
+
+# Build the Linux version
+dotnet build src/ChargeGuard.Linux/ChargeGuard.Linux.csproj -c Release
+
+# Run the application
+dotnet run --project src/ChargeGuard.Linux/ChargeGuard.Linux.csproj
+```
 
 ### Building from Source
 
@@ -136,8 +161,10 @@ ChargeGuard is designed with privacy in mind:
 
 - **Monitoring Only**: ChargeGuard only monitors battery status. It does not control or stop charging. You must manually disconnect the charger.
 - **Firmware Variations**: Different laptop firmware may report battery events differently. A 60-second fallback timer is used for reliability.
-- **Windows 11 Only**: Designed and tested for Windows 11. May work on Windows 10 but not officially supported.
+- **Windows 11 Primary**: Designed and tested for Windows 11. May work on Windows 10 but not officially supported.
+- **Linux in Development**: Linux support is currently in development and may have limited functionality.
 - **Single Battery**: Assumes a single primary battery. Multi-battery systems are not supported.
+- **WebView2 on Windows**: Web dashboard requires WebView2 runtime (typically pre-installed on Windows 11).
 
 ## Usage
 
