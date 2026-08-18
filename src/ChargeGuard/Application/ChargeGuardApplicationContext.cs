@@ -36,9 +36,9 @@ public class ChargeGuardApplicationContext : ApplicationContext
     private readonly BatteryAnalyticsService _analyticsService;
     private readonly BatteryAnalyticsQueries _analyticsQueries;
     private DateTime? _lastAlertTime;
-    private readonly Dictionary<int, Icon> _iconCache = new();
+    private readonly Dictionary<string, Icon> _iconCache = new();
     private Icon? _baseIcon;
-    private int _lastDisplayedPercentage = -1;
+    private string _lastDisplayedIconKey = string.Empty;
 
     private const int ReminderCheckIntervalMs = 1000; // Check every second for reminder due times
 
@@ -230,6 +230,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
 
         string status;
         int? percentage = snapshot.BatteryPercentage;
+        var powerState = "unavailable";
         
         if (!snapshot.IsBatteryAvailable)
         {
@@ -238,61 +239,69 @@ public class ChargeGuardApplicationContext : ApplicationContext
         }
         else if (!snapshot.IsAcPowerConnected)
         {
+            powerState = "discharging";
             status = $"{percentage}% on battery";
         }
         else if (session != null && session.IsTemporaryFullChargeMode)
         {
+            powerState = "charging";
             status = $"{percentage}% charging to 100%";
         }
         else if (session != null && session.TargetAlertSent)
         {
+            powerState = "charged";
             status = $"{percentage}% target reached";
         }
         else if (snapshot.IsCharging)
         {
+            powerState = "charging";
             status = $"{percentage}% charging";
         }
         else
         {
+            powerState = "ac";
             status = $"{percentage}% on AC power";
         }
 
         _tooltipNotifier.UpdateTooltip(status);
 
         // Update icon with percentage if available and changed
-        if (percentage.HasValue && percentage != _lastDisplayedPercentage)
+        var iconKey = $"{percentage ?? -1}_{powerState}";
+        if (percentage.HasValue && iconKey != _lastDisplayedIconKey)
         {
-            var iconWithPercentage = GetIconWithPercentage(percentage.Value);
+            var iconWithPercentage = GetIconWithPercentage(percentage.Value, powerState);
             if (iconWithPercentage != null)
             {
                 _notifyIcon.Icon = iconWithPercentage;
-                _lastDisplayedPercentage = percentage.Value;
+                _lastDisplayedIconKey = iconKey;
             }
         }
-        else if (!percentage.HasValue && _lastDisplayedPercentage != -1)
+        else if (!percentage.HasValue && _lastDisplayedIconKey != "unavailable")
         {
             // Reset to base icon when percentage is unavailable
             if (_baseIcon != null)
             {
                 _notifyIcon.Icon = _baseIcon;
-                _lastDisplayedPercentage = -1;
+                _lastDisplayedIconKey = "unavailable";
             }
         }
     }
 
-    private Icon? GetIconWithPercentage(int percentage)
+    private Icon? GetIconWithPercentage(int percentage, string powerState)
     {
         if (_baseIcon == null)
             return null;
 
+        var cacheKey = $"{percentage}_{powerState}";
+
         // Check cache first
-        if (_iconCache.TryGetValue(percentage, out var cachedIcon))
+        if (_iconCache.TryGetValue(cacheKey, out var cachedIcon))
             return cachedIcon;
 
         try
         {
-            // Use standard Windows 11 tray icon size
-            const int iconSize = 48; // Standard tray icon size
+            // Use larger source icon for better Windows 11 scaling quality
+            const int iconSize = 128; // Larger source for better downscaling
             using var bitmap = new Bitmap(iconSize, iconSize);
             using var graphics = Graphics.FromImage(bitmap);
             
@@ -304,22 +313,34 @@ public class ChargeGuardApplicationContext : ApplicationContext
             // Configure text rendering
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
             
-            // Calculate text size and position - fill most of the icon
+            // Determine colors based on power state
+            Color backgroundColor = GetPowerStateColor(powerState);
+            
+            // Calculate text size and position - fill most of the icon with larger text
             string text = percentage.ToString();
-            var fontSize = (float)Math.Max(20, iconSize / 2.2);
+            var fontSize = (float)Math.Max(56, iconSize / 1.8);
             using var font = new Font(new FontFamily("Arial"), fontSize, FontStyle.Bold);
             
             var textSize = graphics.MeasureString(text, font);
             var x = (iconSize - textSize.Width) / 2;
             var y = (iconSize - textSize.Height) / 2;
             
-            // Draw semi-transparent background with minimal padding
-            var padding = 3;
+            // Draw colored background with padding
+            var padding = 12;
             var bgRect = new RectangleF(x - padding, y - padding, textSize.Width + padding * 2, textSize.Height + padding * 2);
-            using var bgBrush = new SolidBrush(Color.FromArgb(240, Color.Black));
+            using var bgBrush = new SolidBrush(Color.FromArgb(235, backgroundColor));
             graphics.FillRectangle(bgBrush, bgRect);
             
-            // Draw percentage text
+            // Draw a border for better definition
+            using var borderPen = new Pen(Color.White, 4);
+            graphics.DrawRectangle(borderPen, x - padding, y - padding, textSize.Width + padding * 2, textSize.Height + padding * 2);
+            
+            // Draw text shadow/outline for extra contrast
+            using var shadowBrush = new SolidBrush(Color.Black);
+            const int shadowOffset = 2;
+            graphics.DrawString(text, font, shadowBrush, x + shadowOffset, y + shadowOffset);
+            
+            // Draw percentage text in white for maximum contrast
             using var textBrush = new SolidBrush(Color.White);
             graphics.DrawString(text, font, textBrush, x, y);
             
@@ -327,7 +348,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
             var icon = Icon.FromHandle(bitmap.GetHicon());
             
             // Cache the icon
-            _iconCache[percentage] = icon;
+            _iconCache[cacheKey] = icon;
             
             return icon;
         }
@@ -336,6 +357,18 @@ public class ChargeGuardApplicationContext : ApplicationContext
             _logger.LogWarning($"Failed to create icon with percentage {percentage}: {ex.Message}");
             return _baseIcon;
         }
+    }
+
+    private Color GetPowerStateColor(string powerState)
+    {
+        return powerState switch
+        {
+            "charging" => Color.ForestGreen,
+            "charged" => Color.DarkGreen,
+            "discharging" => Color.RoyalBlue,
+            "ac" => Color.DarkOrange,
+            _ => Color.DimGray
+        };
     }
 
     private void OnNotifyIconDoubleClick(object? sender, EventArgs e)
