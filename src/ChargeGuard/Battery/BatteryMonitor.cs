@@ -16,7 +16,7 @@ public class BatteryMonitor : IDisposable
     private BatterySnapshot? _lastSnapshot;
     private bool _disposed;
 
-    private const int FallbackIntervalMs = 60000; // 60 seconds
+    private const int FallbackIntervalMs = 2000; // 2 seconds
 
     public event EventHandler<BatteryStateChangedEventArgs>? BatteryStateChanged;
 

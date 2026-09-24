@@ -34,6 +34,7 @@ public partial class SettingsForm : Form
     private NumericUpDown _firstReminderDelayInput = null!;
     private NumericUpDown _repeatedReminderIntervalInput = null!;
     private NumericUpDown _escalationPercentageInput = null!;
+    private NumericUpDown _lowBatteryPercentageInput = null!;
     private CheckBox _soundEnabledCheckBox = null!;
     private CheckBox _startWithWindowsCheckBox = null!;
     private CheckBox _startMinimizedCheckBox = null!;
@@ -334,11 +335,29 @@ public partial class SettingsForm : Form
             TextAlign = HorizontalAlignment.Right
         };
 
+        // Low battery percentage
+        var lowBatteryLabel = new Label { 
+            Text = "Low Battery (%):", 
+            Location = new Point(15, 235), 
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9)
+        };
+        _lowBatteryPercentageInput = new NumericUpDown
+        {
+            Minimum = 1,
+            Maximum = 100,
+            Value = _settings.LowBatteryPercentage,
+            Location = new Point(200, 233),
+            Size = new Size(80, 25),
+            Font = new Font("Segoe UI", 9),
+            TextAlign = HorizontalAlignment.Right
+        };
+
         // Sound
         _soundEnabledCheckBox = new CheckBox
         {
             Text = "Enable Sound Notifications",
-            Location = new Point(15, 240),
+            Location = new Point(15, 270),
             Checked = _settings.SoundEnabled,
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
@@ -348,7 +367,7 @@ public partial class SettingsForm : Form
         _startWithWindowsCheckBox = new CheckBox
         {
             Text = "Start with Windows",
-            Location = new Point(15, 275),
+            Location = new Point(15, 305),
             Checked = _settings.StartWithWindows,
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
@@ -358,7 +377,7 @@ public partial class SettingsForm : Form
         _startMinimizedCheckBox = new CheckBox
         {
             Text = "Start Minimized",
-            Location = new Point(15, 310),
+            Location = new Point(15, 340),
             Checked = _settings.StartMinimized,
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
@@ -367,7 +386,7 @@ public partial class SettingsForm : Form
         // Notification timeout
         var notificationTimeoutLabel = new Label {
             Text = "Notification Timeout (sec):",
-            Location = new Point(15, 345),
+            Location = new Point(15, 375),
             AutoSize = true,
             Font = new Font("Segoe UI", 9)
         };
@@ -376,7 +395,7 @@ public partial class SettingsForm : Form
             Minimum = 3,
             Maximum = 60,
             Value = (decimal)_settings.NotificationTimeout.TotalSeconds,
-            Location = new Point(200, 343),
+            Location = new Point(200, 373),
             Size = new Size(80, 25),
             Font = new Font("Segoe UI", 9),
             TextAlign = HorizontalAlignment.Right
@@ -395,6 +414,8 @@ public partial class SettingsForm : Form
         group.Controls.Add(_repeatedReminderIntervalInput);
         group.Controls.Add(escalationLabel);
         group.Controls.Add(_escalationPercentageInput);
+        group.Controls.Add(lowBatteryLabel);
+        group.Controls.Add(_lowBatteryPercentageInput);
         group.Controls.Add(_soundEnabledCheckBox);
         group.Controls.Add(_startWithWindowsCheckBox);
         group.Controls.Add(_startMinimizedCheckBox);
@@ -434,6 +455,7 @@ public partial class SettingsForm : Form
         _firstReminderDelayInput.Value = (decimal)_settings.FirstReminderDelay.TotalMinutes;
         _repeatedReminderIntervalInput.Value = (decimal)_settings.RepeatedReminderInterval.TotalMinutes;
         _escalationPercentageInput.Value = _settings.EscalationPercentage;
+        _lowBatteryPercentageInput.Value = _settings.LowBatteryPercentage;
         _soundEnabledCheckBox.Checked = _settings.SoundEnabled;
         _startWithWindowsCheckBox.Checked = _settings.StartWithWindows;
         _startMinimizedCheckBox.Checked = _settings.StartMinimized;
@@ -469,6 +491,7 @@ public partial class SettingsForm : Form
         _settings.FirstReminderDelay = TimeSpan.FromMinutes((double)_firstReminderDelayInput.Value);
         _settings.RepeatedReminderInterval = TimeSpan.FromMinutes((double)_repeatedReminderIntervalInput.Value);
         _settings.EscalationPercentage = (int)_escalationPercentageInput.Value;
+        _settings.LowBatteryPercentage = (int)_lowBatteryPercentageInput.Value;
         _settings.SoundEnabled = _soundEnabledCheckBox.Checked;
         _settings.StartWithWindows = _startWithWindowsCheckBox.Checked;
         _settings.StartMinimized = _startMinimizedCheckBox.Checked;

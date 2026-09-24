@@ -239,8 +239,16 @@ public class ChargeGuardApplicationContext : ApplicationContext
         }
         else if (!snapshot.IsAcPowerConnected)
         {
-            powerState = "discharging";
-            status = $"{percentage}% on battery";
+            if (percentage.HasValue && percentage.Value <= _settings.LowBatteryPercentage)
+            {
+                powerState = "lowbattery";
+                status = $"{percentage}% low battery";
+            }
+            else
+            {
+                powerState = "discharging";
+                status = $"{percentage}% on battery";
+            }
         }
         else if (session != null && session.IsTemporaryFullChargeMode)
         {
@@ -365,6 +373,7 @@ public class ChargeGuardApplicationContext : ApplicationContext
         {
             "charging" => Color.ForestGreen,
             "charged" => Color.DarkGreen,
+            "lowbattery" => Color.Crimson,
             "discharging" => Color.RoyalBlue,
             "ac" => Color.DarkOrange,
             _ => Color.DimGray

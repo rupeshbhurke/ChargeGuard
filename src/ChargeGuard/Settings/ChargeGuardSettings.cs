@@ -8,6 +8,7 @@ public class ChargeGuardSettings
     private int _normalTargetPercentage = 80;
     private int _advanceWarningPercentage = 75;
     private int _escalationPercentage = 90;
+    private int _lowBatteryPercentage = 20;
     private TimeSpan _firstReminderDelay = TimeSpan.FromMinutes(5);
     private TimeSpan _repeatedReminderInterval = TimeSpan.FromMinutes(10);
     private TimeSpan _notificationTimeout = TimeSpan.FromSeconds(10);
@@ -68,6 +69,16 @@ public class ChargeGuardSettings
     }
 
     /// <summary>
+    /// Gets or sets the low battery percentage threshold (1-100).
+    /// When battery is at or below this value and discharging, the tray icon shows a warning color.
+    /// </summary>
+    public int LowBatteryPercentage
+    {
+        get => _lowBatteryPercentage;
+        set => _lowBatteryPercentage = ClampPercentage(value);
+    }
+
+    /// <summary>
     /// Gets or sets whether sound notifications are enabled.
     /// </summary>
     public bool SoundEnabled { get; set; } = true;
@@ -117,6 +128,7 @@ public class ChargeGuardSettings
         _normalTargetPercentage = ClampPercentage(_normalTargetPercentage);
         _advanceWarningPercentage = ClampPercentage(_advanceWarningPercentage);
         _escalationPercentage = ClampPercentage(_escalationPercentage);
+        _lowBatteryPercentage = ClampPercentage(_lowBatteryPercentage);
         TemporaryFullChargeTarget = ClampPercentage(TemporaryFullChargeTarget);
 
         // Clamp reminder intervals to reasonable limits
@@ -162,6 +174,7 @@ public class ChargeGuardSettings
             FirstReminderDelay = FirstReminderDelay,
             RepeatedReminderInterval = RepeatedReminderInterval,
             EscalationPercentage = EscalationPercentage,
+            LowBatteryPercentage = LowBatteryPercentage,
             SoundEnabled = SoundEnabled,
             StartWithWindows = StartWithWindows,
             StartMinimized = StartMinimized,
